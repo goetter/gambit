@@ -1,25 +1,34 @@
-@rem File: "vc2008.cmd"
+@rem File: "vc2008.bat"
 @rem
-@rem This is a batch file to compile Gambit with the Microsoft Visual
-@rem C++ 2008 Professional Edition.  It probably will work with the
-@rem Express Edition as well.
-@rem
-@rem TODO: turn this into a makefile
+@rem Compile Gambit with the Microsoft Visual C++ 2008 Professional Edition.
+@rem Given a single amd64 argument, builds for Win64; otherwise, Win32.
 
 @rem Setup environment variables
 setlocal
 
-@call "C:\Program Files\Microsoft Visual Studio 9.0\VC\bin\vcvars32.bat"
+if "%1%" == "amd64" (
+ call "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\vcvarsall.bat" amd64
+ set CCDBG=-Oityb1
+ @rem set CCDBG=-Zi -Od -Wp64
+ set CCUNICODE=/DUNICODE /D_UNICODE /DUSE_wchar
+ set CCSYSTYPE=/D___SYS_TYPE_CPU=\"amd64\" /D___SYS_TYPE_VENDOR=\"pc\" /D___SYS_TYPE_OS=\"visualc\"
+ set GHPTRWIDTH=___LONGLONG_WIDTH
+) else (
+ call "C:\Program Files\Microsoft Visual Studio 9.0\VC\bin\vcvars32.bat"
+ set CCDBG=-Oityb1
+ @rem Enable the following for symbolic debugging of the binary
+ @rem set CCDBG=-Zi -Od
+ @rem Enable the following for wide-character system calls
+ set CCUNICODE=/DUNICODE /D_UNICODE /DUSE_wchar
+ set CCSYSTYPE=/D___SYS_TYPE_CPU=\"i686\" /D___SYS_TYPE_VENDOR=\"pc\" /D___SYS_TYPE_OS=\"visualc\"
+ set GHPTRWIDTH=___LONG_WIDTH
+)
 
 @rem We can't use -D___SINGLE_HOST for all Gambit generated C files
 @rem because the C compiler runs out of memory while compiling _num.c
 @rem and _io.c .
 
-set COMP_GEN=cl -nologo -Oityb1 -Zi -GS -RTC1 -MT -D_CRT_SECURE_NO_DEPRECATE -c -I..\include -D___SYS_TYPE_CPU=\"i686\" -D___SYS_TYPE_VENDOR=\"pc\" -D___SYS_TYPE_OS=\"visualc\"
-
-if not "%1%" == "" (
-set COMP_GEN=%COMP_GEN% -D___GAMBCDIR=\"%1%\"
-)
+set COMP_GEN=cl -nologo %CCDBG% %CCUNICODE% -GS -RTC1 -MT -D_CRT_SECURE_NO_DEPRECATE -c -I..\include %CCSYSTYPE%
 
 set COMP_LIB_MH=%COMP_GEN% -D___LIBRARY
 set COMP_LIB_PR_MH=%COMP_LIB_MH% -D___PRIMAL
@@ -31,7 +40,7 @@ set COMP_APP=%COMP_GEN% -D___SINGLE_HOST
 @rem from gambit.h.in by prefixing it with the needed declarations.
 
 echo #ifndef ___VOIDSTAR_WIDTH                > include\gambit.h
-echo #define ___VOIDSTAR_WIDTH ___LONG_WIDTH >> include\gambit.h
+echo #define ___VOIDSTAR_WIDTH %GHPTRWIDTH%  >> include\gambit.h
 echo #endif                                  >> include\gambit.h
 echo #ifndef ___MAX_CHR                      >> include\gambit.h
 echo #define ___MAX_CHR 0x10ffff             >> include\gambit.h
@@ -76,7 +85,7 @@ cd gsi
 %COMP_APP% _gsi.c
 %COMP_APP% _gsi_.c
 
-cl -Fegsi.exe ..\lib\libgambc.lib _gsilib.obj _gambcgsi.obj _gsi.obj _gsi_.obj Kernel32.Lib User32.Lib Gdi32.Lib WS2_32.Lib
+cl %CCDBG% -Fegsi.exe ..\lib\libgambc.lib _gsilib.obj _gambcgsi.obj _gsi.obj _gsi_.obj Kernel32.Lib User32.Lib Gdi32.Lib WS2_32.Lib
 
 cd ..
 
@@ -101,9 +110,12 @@ cd gsc
 %COMP_APP% _gsc.c
 %COMP_APP% _gsc_.c
 
-cl -Fegsc.exe ..\lib\libgambc.lib _host.obj _utils.obj _source.obj _parms.obj _env.obj _ptree1.obj _ptree2.obj _gvm.obj _back.obj _front.obj _prims.obj _t-c-1.obj _t-c-2.obj _t-c-3.obj _gsclib.obj _gambcgsc.obj _gsc.obj _gsc_.obj Kernel32.Lib User32.Lib Gdi32.Lib WS2_32.Lib
+cl %CCDBG% -Fegsc.exe ..\lib\libgambc.lib _host.obj _utils.obj _source.obj _parms.obj _env.obj _ptree1.obj _ptree2.obj _gvm.obj _back.obj _front.obj _prims.obj _t-c-1.obj _t-c-2.obj _t-c-3.obj _gsclib.obj _gambcgsc.obj _gsc.obj _gsc_.obj Kernel32.Lib User32.Lib Gdi32.Lib WS2_32.Lib
 
 cd ..
+
+@rem Enable the following not to overwrite your own gsc-cc-o.bat
+goto :skip_batch_file
 
 cd bin
 
@@ -160,3 +172,5 @@ echo.>> gsc-cc-o.bat
 echo exit>> gsc-cc-o.bat
 
 cd ..
+
+:skip_batch_file
