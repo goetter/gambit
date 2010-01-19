@@ -1,21 +1,19 @@
-all: _inc _lib _gsi _gsc
+# CWD must be the Gambit main directory, not gambit/misc
 
-_inc:
+all clean realclean bootclean:
 	cd include
-	$(MAKE) /f win.mak
+	$(MAKE) /f win.mak $(MAKEFLAGS) $@
 	cd ..
-
-_lib:
 	cd lib
-	$(MAKE) /f win.mak
+	$(MAKE) /f win.mak $(MAKEFLAGS) $@
 	cd ..
-
-_gsi:
 	cd gsi
-	$(MAKE) /f win.mak
+	$(MAKE) /f win.mak $(MAKEFLAGS) $@
+	cd ..
+	cd gsc
+	$(MAKE) /f win.mak $(MAKEFLAGS) $@
 	cd ..
 
-_gsc:
-	cd gsc
-	$(MAKE) /f win.mak
-	cd ..
+bootstrap: all
+	-copy gsc-comp.exe gsc-comp.old
+	copy gsc\gsc.exe gsc-comp.exe

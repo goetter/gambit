@@ -4,25 +4,49 @@ all: libgambc.lib
 
 !include ..\misc\winconf.mak
 
-CSRCS_PR_MH=	_num.c _io.c
-CSRCS_PR_SH=	main.c setup.c mem.c \
-		os.c os_base.c os_time.c os_shell.c os_files.c os_dyn.c os_tty.c os_io.c \
-		c_intf.c \
-		_kernel.c _system.c _std.c _eval.c _nonstd.c _thread.c _repl.c \
-		_gambc.c
+.SUFFIXES:
+.SUFFIXES: .scm .c .obj
 
-OBJS_PR_MH= $(CSRCS_PR_MH:.c=.obj)
-OBJS_PR_SH= $(CSRCS_PR_SH:.c=.obj)
+SOURCES_SCM= _kernel.scm _system.scm _num.scm _std.scm _eval.scm _io.scm _nonstd.scm _thread.scm _repl.scm
+SOURCES_C= main.c setup.c mem.c c_intf.c \
+	   os.c os_base.c os_time.c os_shell.c os_files.c os_dyn.c os_tty.c os_io.c
+VOLATILE_C= $(SOURCES_SCM:.scm=.c) _gambc.c
+
+OBJS= $(SOURCES_C:.c=.obj) $(VOLATILE_C:.c=.obj)
+
+HEADERS_SCM= _kernel^#.scm _system^#.scm _num^#.scm _std^#.scm \
+	_eval^#.scm _io^#.scm _nonstd^#.scm _thread^#.scm _repl^#.scm
+
+LIBRARIES_SCM= $(HEADERS_SCM) _gambit^#.scm gambit^#.scm \
+	r5rs^#.scm r4rs^#.scm digest^#.scm digest.scm syntax-case.scm
+
 
 COMP_GEN=$(CCUNICODE) $(CCDBG) /nologo /GS /RTC1 /MT /D_CRT_SECURE_NO_DEPRECATE /c /I..\include $(CCSYSTYPE)
 
+_gambc.c: $(SOURCES_SCM:.scm=.c)
+	..\gsc-comp -f -link -flat -o _gambc.c $(SOURCES_SCM:.scm=.c)
+
+.scm.c:
+	..\gsc-comp -f -c -check $*.scm
+
+_kernel.c: _kernel.scm $(HEADERS_SCM)
+_system.c: _system.scm $(HEADERS_SCM)
+_num.c: _num.scm $(HEADERS_SCM)
+_std.c: _std.scm $(HEADERS_SCM)
+_eval.c: _eval.scm $(HEADERS_SCM)
+_io.c: _io.scm $(HEADERS_SCM)
+_nonstd.c: _nonstd.scm $(HEADERS_SCM)
+_thread.c: _thread.scm $(HEADERS_SCM)
+_repl.c: _repl.scm $(HEADERS_SCM)
+
+
+# num and io are too large to compile with ___SINGLE_HOST
 
 _io.obj: _io.c ..\include\gambit.h
 	 cl $(COMP_GEN) /D___LIBRARY /D___PRIMAL _io.c
 
 _num.obj: _num.c mem.h ..\include\gambit.h
 	 cl $(COMP_GEN) /D___LIBRARY /D___PRIMAL _num.c
-
 
 .c.obj: 
 	cl $(COMP_GEN) /D___LIBRARY /D___SINGLE_HOST /D___PRIMAL $*.c
@@ -46,8 +70,17 @@ _eval.obj: _eval.c ..\include\gambit.h
 _nonstd.obj: _nonstd.c ..\include\gambit.h
 _thread.obj: _thread.c ..\include\gambit.h
 _repl.obj: _repl.c ..\include\gambit.h
-gambc.obj: _gambc.c ..\include\gambit.h
+_gambc.obj: _gambc.c ..\include\gambit.h
 
 
-libgambc.lib: $(OBJS_PR_MH) $(OBJS_PR_SH)
-	      lib /out:libgambc.lib $(OBJS_PR_MH) $(OBJS_PR_SH)
+libgambc.lib: $(OBJS)
+	lib /out:libgambc.lib $(OBJS)
+
+
+clean:
+	-del $(OBJS) libgambc.lib
+
+realclean: clean
+	-del $(VOLATILE_C)
+
+bootclean: realclean

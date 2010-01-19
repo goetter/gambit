@@ -171,6 +171,7 @@ lib/guide/guidepro
 lib/guide/images/makefile
 lib/guide/makefile
 lib/libgambc.a
+lib/libgambc.lib
 lib/main.o
 lib/makefile
 lib/mem.o

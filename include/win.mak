@@ -12,3 +12,9 @@ gambit.h: gambit.h.in
 	  echo #endif                                  >> gambit.h
 	  type gambit.h.in                             >> gambit.h
 
+clean:
+	-del gambit.h
+
+realclean: clean
+
+bootclean: realclean
